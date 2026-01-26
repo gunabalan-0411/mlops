@@ -74,3 +74,10 @@ jobs:
           name: ml-artifacts-${{ matrix.python }}-${{ github.run_id }}
           path: artifacts
 ```
+
+## Create an API to model
+
+refer app.py
+either use fastapi or flask
+
+## Deployment
