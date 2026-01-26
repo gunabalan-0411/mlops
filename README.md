@@ -81,3 +81,34 @@ refer app.py
 either use fastapi or flask
 
 ## Deployment
+
+Create a Dockerfile
+
+* Pull base image python:3.12-slim
+* Create/enter /app
+* Copy requirements.txt
+* Upgrade pip
+* Install dependencies
+* Copy your full project code
+* Save final image
+
+docker build -t hello-mlops:latest .
+
+``` bash
+# Variant: slim (smaller than full Debian image)
+FROM python:3.12-slim
+
+WORKDIR /app
+COPY requirements.txt .
+
+RUN python -m pip install --upgrade pip
+RUN python -m pip install -r requirements.txt
+
+COPY . . 
+
+EXPOSE 5001
+
+CMD ["python", "app.py"]
+
+# Best practice: create .dockerignore
+```
