@@ -80,6 +80,10 @@ jobs:
 refer app.py
 either use fastapi or flask
 
+```bash
+curl -X POST "http://127.0.0.1:5001/predict" -H "Content-Type: application/json" -d '{"features": [5.3, 3.5, 1.4, 0.2]}'
+```
+
 ## Deployment
 
 Create a Dockerfile
@@ -92,8 +96,14 @@ Create a Dockerfile
 * Copy your full project code
 * Save final image
 
+build
 docker build -t hello-mlops:latest .
 
+run
+docker run -d -p 5001:5001 hello-mlops:latest
+
+check
+docker ps
 ``` bash
 # Variant: slim (smaller than full Debian image)
 FROM python:3.12-slim
@@ -112,3 +122,41 @@ CMD ["python", "app.py"]
 
 # Best practice: create .dockerignore
 ```
+
+## DVC (Data Version Control)
+* We can S3, blob storage, gc and its comes along with data versioning
+* pip install dvc
+``` bash
+git init
+dvc init
+dvc add data/sample_data.csv # this will create data/sample_data.csv.dvc
+```
+whenever we change to data, we use dvc add and it will update the check sum
+The .dvc will be stored and maintened in git but the data will be stored in s3 bucket
+
+* to set remort s3 bucket for data storage
+* use aws configure to store the credentials
+* pip install dvc_s3
+* use dvc push to upload the data to s3
+```bash
+dvc remote add -d dvc_demo s3://dvc_demo
+```
+
+### Step by step
+* dvc add filename
+* git add, commit dvc file
+* dvc push (will be pushed to s3 and create two diff version of data and checksum details)
+
+## Experiment Tracking (ML Flow)
+
+* mlflow.set_experiment("iris_rf_experiment") / mlflow.sklearn.autolog()
+* with mlflow.start_run():
+* mlflow.log_param
+* mlflow.log_metric
+* mlflow.log_model
+* mlflow.log_artifact("feature_importance.csv") # store .pkl, data, confusion matrix etc
+* mlflow ui to view
+* mlflow.set_tracking_uri("http://my-mlflow-server:5000")
+* Tracking URI decides where runs are stored.
+* mlflow.register_model(model_uri=model_uri, name="IrisRFModel")
+* mlflow.sklearn.load_model(model_uri)
