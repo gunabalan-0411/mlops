@@ -146,8 +146,19 @@ dvc remote add -d dvc_demo s3://dvc_demo
 * dvc add filename
 * git add, commit dvc file
 * dvc push (will be pushed to s3 and create two diff version of data and checksum details)
+for git cloning
+* dvc pull will download the data
 
 ## Experiment Tracking (ML Flow)
+* pip install mlflow
+for basic installation
+* mlflow ui --backend-store-uri sqlite:///mlfow.db --port 7006
+for production
+* for mlflow should be in kubernetes cluster and connected to postgresql hosted in aws
+  * postgres in aws: RDS -> Database -> postegres -> unique id -> and get endpoint details
+  * create database "mlflow" in postegresql and user with full access
+  * install mlflow in kubernets cluster with configuration set to this postegresql database, user, port, url etc
+
 
 * mlflow.set_experiment("iris_rf_experiment") / mlflow.sklearn.autolog()
 * with mlflow.start_run():
@@ -160,3 +171,14 @@ dvc remote add -d dvc_demo s3://dvc_demo
 * Tracking URI decides where runs are stored.
 * mlflow.register_model(model_uri=model_uri, name="IrisRFModel")
 * mlflow.sklearn.load_model(model_uri)
+* For every time we run the train.py the logs will be collected
+* select all run in mlflow ui to compare (using compare button)
+
+## Model deployment and Serving
+1. VM -> artifacts -> server
+2. Kubernetes: -> container -> pod -> cluster
+3. Managed: -> amazon sagemaker (Easy)
+4. K-serve: simple way of using kubernetes
+
+Mainly
+train.py -> .joblib, .pkl -> fastapi -> request to fastapi
