@@ -1,35 +1,141 @@
-# mlops
+# MLOps — Interview Revision Notes (Restructured)
 
-## Machine Learning Lifecycle
-1. Problem Definition
-2. Data Collection
-3. Data Cleaning
-4. Feature Engineering (Transformation)
-5. Model Selection
-6. Model Training
-7. Model Evaluation
-8. Hyper Parameter Tuning
-9. Deploying
-10. Monitoring, Maintaining
+> Goal: quick revision + ability to explain each component in simple terms.
 
-Example CI pipeline
+---
 
-* Workflow triggers on:
-* Push to main
-* Pull request to main
-* GitHub starts the job on Ubuntu runner
-* Job runs using a Python matrix
-* Python 3.11 run
-* Python 3.12 run
-* Checkout repository code
-* Setup selected Python version (from matrix)
-* Upgrade pip / setuptools / wheel
-* Install dependencies from requirements.txt
-* Run training script train.py
-* Verify artifacts folder contents (ls -la artifacts)
-* Upload artifacts/ as GitHub Actions artifact
-* Artifact name includes python version + run id
+## 0) What is MLOps? (1-line answer)
 
+**MLOps = DevOps + ML** → practices to **build, deploy, monitor, and continuously improve ML models reliably**.
+
+### Why companies need MLOps?
+
+* ML models **decay** over time (data drift, concept drift)
+* Training/retraining should be **repeatable and traceable**
+* Deployment must be **safe + scalable**
+* Teams need **collaboration + governance**
+
+---
+
+## 1) Machine Learning Lifecycle (End-to-End)
+
+This is the standard pipeline from idea → production → monitoring.
+
+### 1. Problem Definition
+
+* Define **business objective**, constraints, and measurable success metric.
+* Output: problem statement + evaluation metric.
+
+### 2. Data Collection
+
+* Data sources: DBs, APIs, logs, files, web, sensors.
+* Output: raw dataset + data dictionary.
+
+### 3. Data Cleaning
+
+* Handle missing values, duplicates, outliers, wrong data types.
+* Output: clean dataset.
+
+### 4. Feature Engineering / Transformation
+
+* Scaling/normalization, encoding categorical variables, text vectorization.
+* Output: feature pipeline.
+
+### 5. Model Selection
+
+* Choose model family based on constraints.
+
+  * Linear models → speed + interpretability
+  * Tree/boosting → strong baseline for tabular
+  * Deep learning → images/audio/NLP
+
+### 6. Model Training
+
+* Train on training data, validate with holdout/cross-validation.
+
+### 7. Model Evaluation
+
+* Metrics: accuracy, precision/recall/F1, ROC-AUC, RMSE, etc.
+* Output: evaluation report.
+
+### 8. Hyperparameter Tuning
+
+* Grid search / Random search / Bayesian optimization.
+
+### 9. Deploying
+
+* Model served via API, batch scoring, or streaming.
+
+### 10. Monitoring & Maintenance
+
+* Monitor: latency, errors, drift, performance drop.
+* Retrain + redeploy safely.
+
+✅ **Interview summary:**
+
+> “Lifecycle is not linear. It’s iterative. Monitoring feeds back into data and retraining.”
+
+---
+
+## 2) Version Control (Code, Data, Models)
+
+### A) Code versioning (Git)
+
+* Tracks code changes and enables collaboration.
+
+### B) Data versioning (DVC)
+
+* Data is too large for Git → **DVC versions large datasets**.
+* Git stores **.dvc metadata (checksums)**, actual data stored in **remote storage**.
+
+### C) Model versioning
+
+* Store models as artifacts + track metadata (which data + code created it).
+* Usually done via **MLflow model registry** or artifact store.
+
+---
+
+## 3) CI/CD in MLOps (Big Picture)
+
+### What is CI?
+
+* **Continuous Integration** = validate every change (tests, linting, training runs).
+
+### What is CD?
+
+* **Continuous Delivery/Deployment** = push model/app to environments automatically.
+
+### Why CI/CD is harder in ML?
+
+Because changes are not only code changes:
+
+* Data changes
+* Features change
+* Model behavior changes
+
+---
+
+## 4) CI Example — Training pipeline (GitHub Actions)
+
+### Goal
+
+Automatically train the model and store artifacts whenever code changes.
+
+### Flow explained
+
+* Trigger: push / PR to main
+* Runner: Ubuntu
+* Matrix build: Python 3.11 + 3.12
+* Steps:
+
+  1. Checkout
+  2. Setup Python
+  3. Install dependencies
+  4. Run `train.py`
+  5. Save model artifacts
+  6. Upload artifacts to GitHub
+
+### Your CI YAML (clean copy)
 
 ```yml
 name: CI - Train and Save the model
@@ -47,16 +153,16 @@ jobs:
     strategy:
       matrix:
         python: [3.11, 3.12]
-    
+
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-      
-      - name: Setup python 
+
+      - name: Setup python
         uses: actions/setup-python@v4
         with:
-           python-version: ${{ matrix.python }}
-      
+          python-version: ${{ matrix.python }}
+
       - name: Upgrade pip
         run: python -m pip install --upgrade pip setuptools wheel
 
@@ -65,9 +171,9 @@ jobs:
 
       - name: Train the model
         run: |
-           python train.py
-           ls -la artifacts
-      
+          python train.py
+          ls -la artifacts
+
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
@@ -75,37 +181,61 @@ jobs:
           path: artifacts
 ```
 
-## Create an API to model
+✅ Interview line:
 
-refer app.py
-either use fastapi or flask
+> “CI for ML is training + validation. The output artifact is the model file and evaluation report.”
+
+---
+
+## 5) Model Serving — Create API
+
+### Goal
+
+Expose model inference through an endpoint.
+
+### Two common frameworks
+
+* **FastAPI** (recommended): async, automatic docs, production-friendly
+* Flask: simple and lightweight
+
+### How inference API works
+
+1. Client sends JSON request
+2. API loads model
+3. Model predicts
+4. API returns JSON response
+
+### Example curl
 
 ```bash
-curl -X POST "http://127.0.0.1:5001/predict" -H "Content-Type: application/json" -d '{"features": [5.3, 3.5, 1.4, 0.2]}'
+curl -X POST "http://127.0.0.1:5001/predict" \
+  -H "Content-Type: application/json" \
+  -d '{"features": [5.3, 3.5, 1.4, 0.2]}'
 ```
 
-## Deployment
+✅ Interview line:
 
-Create a Dockerfile
+> “A serving API wraps the model so applications can request predictions without caring about ML internals.”
 
-* Pull base image python:3.12-slim
-* Create/enter /app
-* Copy requirements.txt
-* Upgrade pip
+---
+
+## 6) Deployment Basics — Docker
+
+### Why Docker?
+
+* Same environment everywhere: dev → staging → prod
+* Avoids “works on my machine” problems
+
+### Dockerfile explained
+
+* Use base image: `python:3.12-slim`
+* Copy requirements
 * Install dependencies
-* Copy your full project code
-* Save final image
+* Copy application
+* Expose port
+* Start app
 
-build
-docker build -t hello-mlops:latest .
-
-run
-docker run -d -p 5001:5001 hello-mlops:latest
-
-check
-docker ps
-``` bash
-# Variant: slim (smaller than full Debian image)
+```dockerfile
 FROM python:3.12-slim
 
 WORKDIR /app
@@ -114,65 +244,292 @@ COPY requirements.txt .
 RUN python -m pip install --upgrade pip
 RUN python -m pip install -r requirements.txt
 
-COPY . . 
+COPY . .
 
 EXPOSE 5001
 
 CMD ["python", "app.py"]
-
-# Best practice: create .dockerignore
 ```
 
-## DVC (Data Version Control)
-* We can S3, blob storage, gc and its comes along with data versioning
-* pip install dvc
-``` bash
+### Build + Run
+
+```bash
+docker build -t hello-mlops:latest .
+docker run -d -p 5001:5001 hello-mlops:latest
+
+docker ps
+```
+
+### Best practice: `.dockerignore`
+
+Include things like:
+
+* `.git/`
+* `__pycache__/`
+* `.venv/`
+* `data/` (if large)
+
+✅ Interview line:
+
+> “Docker packages model + API + dependencies into a portable unit.”
+
+---
+
+## 7) DVC (Data Version Control)
+
+### What is DVC?
+
+* Git-like workflow for datasets
+* Stores **metadata in Git**
+* Stores **actual data in remote storage** (S3/Azure/GCP/local)
+
+### Why DVC?
+
+* Reproducibility: “Which exact data version created this model?”
+* Collaboration: team sync dataset versions
+
+### Setup
+
+```bash
+pip install dvc
+
 git init
 dvc init
-dvc add data/sample_data.csv # this will create data/sample_data.csv.dvc
-```
-whenever we change to data, we use dvc add and it will update the check sum
-The .dvc will be stored and maintened in git but the data will be stored in s3 bucket
 
-* to set remort s3 bucket for data storage
-* use aws configure to store the credentials
-* pip install dvc_s3
-* use dvc push to upload the data to s3
+dvc add data/sample_data.csv
+```
+
+This creates:
+
+* `data/sample_data.csv.dvc` (tracked by Git)
+* `.dvc/cache` (data content cache)
+
+### Remote storage (S3 example)
+
 ```bash
+pip install dvc_s3
+aws configure
+
 dvc remote add -d dvc_demo s3://dvc_demo
 ```
 
-### Step by step
-* dvc add filename
-* git add, commit dvc file
-* dvc push (will be pushed to s3 and create two diff version of data and checksum details)
-for git cloning
-* dvc pull will download the data
+### Workflow (step-by-step)
 
-## Experiment Tracking (ML Flow)
-* pip install mlflow
-for basic installation
-* mlflow ui --backend-store-uri sqlite:///mlfow.db --port 7006
-for production
-* for mlflow should be in kubernetes cluster and connected to postgresql hosted in aws
-  * postgres in aws: RDS -> Database -> postegres -> unique id -> and get endpoint details
-  * create database "mlflow" in postegresql and user with full access
-  * install mlflow in kubernets cluster with configuration set to this postegresql database, user, port, url etc
+1. Add/update data
 
+```bash
+dvc add data/sample_data.csv
+```
 
-* mlflow.set_experiment("iris_rf_experiment") / mlflow.sklearn.autolog()
-* with mlflow.start_run():
-* mlflow.log_param
-* mlflow.log_metric
-* mlflow.log_model
-* mlflow.log_artifact("feature_importance.csv") # store .pkl, data, confusion matrix etc
-* mlflow ui to view
-* mlflow.set_tracking_uri("http://my-mlflow-server:5000")
-* Tracking URI decides where runs are stored.
-* mlflow.register_model(model_uri=model_uri, name="IrisRFModel")
-* mlflow.sklearn.load_model(model_uri)
-* For every time we run the train.py the logs will be collected
-* select all run in mlflow ui to compare (using compare button)
+2. Commit metadata to git
+
+```bash
+git add data/sample_data.csv.dvc .gitignore
+git commit -m "Track dataset with DVC"
+```
+
+3. Push data to remote
+
+```bash
+dvc push
+```
+
+### Clone scenario
+
+```bash
+git clone <repo>
+cd <repo>
+dvc pull
+```
+
+✅ Interview line:
+
+> “DVC gives dataset versioning + remote storage; Git only stores the pointer.”
+
+---
+
+## 8) Experiment Tracking — MLflow
+
+### What problem does MLflow solve?
+
+When training multiple models:
+
+* Which run gave best accuracy?
+* What hyperparameters were used?
+* Where are the artifacts stored?
+
+MLflow tracks:
+
+* parameters
+* metrics
+* artifacts
+* models
+
+---
+
+### 8.1 Local MLflow setup
+
+Install:
+
+```bash
+pip install mlflow
+```
+
+Run UI:
+
+```bash
+mlflow ui --backend-store-uri sqlite:///mlflow.db --port 7006
+```
+
+* `backend-store-uri` → where metadata (runs, params, metrics) is stored.
+* UI helps compare runs.
+
+---
+
+### 8.2 MLflow in code (core commands)
+
+Typical structure:
+
+```python
+import mlflow
+import mlflow.sklearn
+
+mlflow.set_experiment("iris_rf_experiment")
+
+with mlflow.start_run():
+    mlflow.log_param("n_estimators", 100)
+    mlflow.log_metric("accuracy", 0.97)
+
+    mlflow.sklearn.log_model(model, artifact_path="model")
+    mlflow.log_artifact("feature_importance.csv")
+```
+
+### Autologging (easy mode)
+
+```python
+mlflow.sklearn.autolog()
+```
+
+It automatically logs:
+
+* parameters
+* metrics
+* model artifacts
+
+---
+
+### 8.3 Remote tracking server
+
+```python
+mlflow.set_tracking_uri("http://my-mlflow-server:5000")
+```
+
+Tracking URI decides **where runs get stored**.
+
+---
+
+### 8.4 Model Registry (production feature)
+
+Purpose: manage model lifecycle states.
+
+Example:
+
+```python
+mlflow.register_model(model_uri=model_uri, name="IrisRFModel")
+```
+
+Load model:
+
+```python
+loaded = mlflow.sklearn.load_model(model_uri)
+```
+
+Registry concepts:
+
+* Model name
+* Version (v1, v2, ...)
+* Stages: Staging / Production / Archived
+
+✅ Interview line:
+
+> “MLflow gives reproducibility: every model run is tied to parameters, metrics, artifacts, and code version.”
+
+---
+
+## 9) What you likely missed (Important topics to add)
+
+These are common MLOps topics beyond what you noted (high interview value).
+
+### A) Testing in MLOps
+
+* Unit tests for feature functions
+* Data validation tests
+* Model performance regression tests
+
+Tools:
+
+* `pytest`
+* Great Expectations / Pandera for data quality
+
+### B) Data validation / schema checks
+
+Why?
+
+* Models break when input distribution/schema changes.
+
+Checks:
+
+* Column type mismatch
+* Null % threshold
+* Range validation
+
+### C) Feature Store (concept)
+
+* Central store for features used in training + serving.
+* Prevents training-serving skew.
+
+Examples: Feast, Tecton.
+
+### D) Model monitoring in production
+
+Monitor:
+
+* latency, throughput
+* error rate
+* drift
+* quality (if labels arrive)
+
+### E) Retraining triggers
+
+* schedule-based retrain (weekly/monthly)
+* performance threshold retrain
+* drift-based retrain
+
+---
+
+## 10) Interview Quick Revision (1-minute story)
+
+Use this as a ready answer:
+
+> “In ML lifecycle, after defining business problem, we collect and clean data, engineer features, and train models. In MLOps, we ensure reproducibility by versioning code in Git and data using DVC with S3 remote. For experiments, MLflow tracks parameters, metrics, and artifacts across runs and supports model registry for staging/production versions. For deployment, we wrap the model in a FastAPI/Flask service and containerize with Docker so it runs consistently across environments. CI pipelines like GitHub Actions automate training/testing and artifact generation. In real production, we add monitoring, drift detection, and CI/CD to retrain and redeploy safely.”
+
+---
+
+## 11) Mini Glossary (Interview-friendly)
+
+* **Artifact**: output file (model.pkl, metrics.json, plots)
+* **Tracking**: logging run history (params + metrics)
+* **Registry**: manage model versions and stages
+* **Drift**: data distribution changes
+* **Training-serving skew**: train features != serving features
+
+---
+
+If you want, I can also add:
+
+* **Deployment + full CI/CD workflow notes** (Kubernetes, Helm, GitHub Actions CD, canary rollout)
+* **End-to-end architecture diagram** (simple + interview-ready)
+
 
 ## Model deployment and Serving
 1. VM -> artifacts -> server
