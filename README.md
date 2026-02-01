@@ -180,5 +180,11 @@ for production
 3. Managed: -> amazon sagemaker (Easy)
 4. K-serve: simple way of using kubernetes
 
-Mainly
-train.py -> .joblib, .pkl -> fastapi -> request to fastapi
+1. VM Approach (but huge costing as lot of vms)
+train.py -> .joblib, .pkl -> fastapi (should support concurrency)(uvicorn server interface help to run with multiple worker)-> front end -> Dynamic scaling -> Load balancing (distribute to various vm (eacg vm with code and api))
+
+## User data script
+Autoscaling (ASG Autoscalling Group) -> create new vm based on more request
+* launch template -> Userdata script (model, config etc) is necessary to create new vm by ASG
+* in github usually there will be new branch for VM (kubernets, ec2, gcp etc)
+* in this branch user_data.sh will be there. (list of script to set environment, model, etc etc)
