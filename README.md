@@ -188,3 +188,82 @@ Autoscaling (ASG Autoscalling Group) -> create new vm based on more request
 * launch template -> Userdata script (model, config etc) is necessary to create new vm by ASG
 * in github usually there will be new branch for VM (kubernets, ec2, gcp etc)
 * in this branch user_data.sh will be there. (list of script to set environment, model, etc etc)
+
+## MOdel Deployment of Kubernetes
+1. Dockerfile 
+2. Model registery
+3. Image -> Model
+4. Kubernetes cluster (multiple) (we can also use kind, minikube, k3s to create a local kubernets cluster)
+5. Prepare Kuberneters manfifest
+6. config
+7. Deployment
+8. ingress controller
+9. ingress
+10. Inference
+
+in a separate branch in git repo, we will be having a k8s-manifests
+  - deployment.yml
+  - namespace.yml
+  - service.yaml
+
+ingress -> INgress controller -> load balancer (PUblic facing)
+
+## Deployment on Kserve
+* 2-3 steps to deployment and serving when compare to vm and kubernetes which take 1-2 days to create things
+* it offers frameworks
+* autoscaling
+
+* in git hub create a branch for kserve and have this kserver config files
+
+## Amazon sagemaker AI (rebranded version for amazon sagemaker)
+
+* A single platform where ds, mlops, devops can collaborate for ai projects.
+* pros: managed ec2 for notebooks, less work on infra, 
+* cons: costing ,not opensource
+
+* It has, experiements, jobs, compute, apps like jupyterlab, rstudio, canvas, code editor, mlflow etc. (better than databricks)
+
+1. Create training and inference in jupyter notebook in app->jupyter
+2. export model and inference.py by zipping using tar
+3. move the tar file to s3 bucket
+4. run deploy.py: to import sklearnmodel from sagemaker lib and model.deploy() to sagemaker, get the model from s3 bucket
+5. or use deployments option in left panel to deploy the model from s3 bucket to sagemaker
+
+## Kubeflow
+
+## Full CI/ CD Pipeline
+
+* Git repo in two branches
+1. Main branch contains normal ML codes
+2. CICD branch contains k8s (deployment.yaml, inference.yaml, serviceaccount.yaml), argocd, api.py, generate_data.py, requirements.txt, train.py
+
+In 2. CICD Branch
+
+-- DVC
+* install dvc, dvc-s3
+* dvc init
+* dvc remote add -d s3remote link // before create a folder in s3
+* dvc add data/dataset.csv // create data/dataset.csv.dvc
+* dvc push // push it s3 buck
+* git add . & commit -m "update"
+* upload model to s3 // create a folder in s3
+
+-- Kubernetes cluster
+* kind get clusters
+* kind create cluster --name=model-name // creating kubernetes cluster
+* kubectl create namespace kserve // creating kserve, kubectl get crds to check if kserver created
+* kubectl create ns ml // to create a namespace created
+* paste the manifest file in the namespace // contains apiversion, name, annotations, type, stringdata. 
+* kubectl apply -f svcaccount.yaml // this will create a service account
+* create inference.yaml,
+
+-- github actions
+* create folder .github/workflows
+* create mlops-pipeline.yml
+* |__ create name, on push, set environments, jobs: steps: setup python, install dependencies, generate dataset, train model, configure aws credentials, push model to s3, update inference.yml, update inference.yml
+* add secrets to github
+
+argocd...
+
+ 
+ 
